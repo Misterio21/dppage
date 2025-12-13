@@ -51,7 +51,7 @@
   // Ověření přihlášení
   async function checkAuth() {
     try {
-      const res = await fetch("http://localhost:3000/dashboard", { credentials: "include" });
+      const res = await fetch("https://dppage.onrender.com/dashboard", { credentials: "include" });
       if (!res.ok) throw new Error("Nepřihlášený");
       const data = await res.json();
       console.log("authed:", data);
@@ -77,7 +77,7 @@
   // načtení stanic
   async function loadStations() {
     try {
-      const res = await fetch("http://localhost:3000/stations", { credentials: "include" });
+      const res = await fetch("https://dppage.onrender.com/stations", { credentials: "include" });
       if (!res.ok) throw new Error("Nepodařilo se načíst stanice.");
       const stations = await res.json();
 

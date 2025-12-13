@@ -12,7 +12,7 @@ export function initMenu() {
     logoutBtn.onclick = async () => {
       try {
         // přidán port 3000 k URL
-        const res = await fetch("http://localhost:3000/logout", {
+        const res = await fetch("https://dppage.onrender.com/logout", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" }

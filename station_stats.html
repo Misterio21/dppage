@@ -152,7 +152,7 @@
   // načtení dat ze serveru
   async function loadRecords() {
     try {
-      const res = await fetch(`http://localhost:3000/records/${stationId}`, { credentials: "include" });
+      const res = await fetch(`https://dppage.onrender.com/records/${stationId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Nepodařilo se načíst záznamy.");
       allRecords = sortByTimestamp(await res.json());
 
@@ -173,7 +173,7 @@
 
   // AUTOMATICKÁ AKTUALIZACE KAŽDÉ 2 SEKUNDY
   setInterval(async () => {
-    const res = await fetch(`http://localhost:3000/records/${stationId}`, { credentials: "include" });
+    const res = await fetch(`https://dppage.onrender.com/records/${stationId}`, { credentials: "include" });
     if (!res.ok) return;
 
     const newRecords = sortByTimestamp(await res.json());

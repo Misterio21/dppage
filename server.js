@@ -161,7 +161,7 @@ app.post("/add_record", authenticateToken, async (req, res) => {
     const records = db.collection("records");
 
     // použij čas z formuláře
-    const timestamp = new Date(recordTime); // z input typu datetime-local
+    const timestamp = new Date(recordTime);
 
     const newRecord = {
       stationId,
@@ -229,4 +229,4 @@ app.post("/logout", (req, res) => {
   res.json({ message: "Odhlášeno." });
 });
 
-app.listen(PORT, () => console.log(`Server běží na http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server běží na https://dppage.onrender.com:${PORT}`));

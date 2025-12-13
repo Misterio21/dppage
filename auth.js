@@ -1,7 +1,7 @@
 // auth.js
 export async function requireLogin() {
   try {
-    const res = await fetch("http://localhost:3000/auth/check", {
+    const res = await fetch("https://dppage.onrender.com/auth/check", {
       credentials: "include"
     });
     if (!res.ok) throw new Error("not logged");

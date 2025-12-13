@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Přihlášení — Moje aplikace</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <main class="container" id="main" role="main">
+    <section class="card" aria-labelledby="login-title">
+      <h1 id="login-title" class="title">Přihlášení</h1>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="username"
+            required
+            inputmode="email"
+            placeholder="tvuj@mail.cz"
+            aria-describedby="email-error"
+          />
+          <div class="error" id="email-error" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <label for="password">Heslo</label>
+          <div class="password-wrapper">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              placeholder="••••••••"
+              aria-describedby="password-error"
+            />
+            <button type="button" id="togglePassword" aria-label="Zobrazit heslo"
+              class="icon-btn">👁️</button>
+          </div>
+          <div class="error" id="password-error" aria-live="polite"></div>
+        </div>
+
+        <div class="controls">
+          <label class="remember">
+            <input id="remember" name="remember" type="checkbox" />
+            Zapamatovat si mě
+          </label>
+          <a class="forgot" href="#" id="forgot">Zapomněli jste heslo?</a>
+        </div>
+
+        <div class="actions">
+          <button id="submitBtn" type="submit" class="primary">Přihlásit se</button>
+        </div>
+
+        <p class="signup">Nemáte účet? <a href="register.html">Zaregistrujte se</a></p>
+
+        <div id="server-message" class="server-message" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
+
+  <script src="index.js"></script>
+</body>
+</html>

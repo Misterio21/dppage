@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Přidat záznam ke stanici — Moje aplikace</title>
+  <link rel="stylesheet" href="index.css">
+  <style>
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius);
+    }
+    .field {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 200ms transform, 200ms box-shadow;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .server-message {
+      margin-top: 15px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="table">
+    <h1>Přidat záznam ke stanici</h1>
+
+    <form id="add-record-form">
+      <div class="field">
+        <label for="station-id">ID stanice</label>
+        <input type="text" id="station-id" placeholder="Zadejte ID stanice" required>
+      </div>
+
+      <div class="field">
+        <label for="record-time">Čas záznamu</label>
+        <input type="datetime-local" id="record-time" required>
+      </div>
+
+      <div class="field">
+        <label for="people">Počet lidí</label>
+        <input type="number" id="people" min="0" value="0" required>
+      </div>
+
+      <div class="field">
+        <label for="bikes">Počet kol</label>
+        <input type="number" id="bikes" min="0" value="0" required>
+      </div>
+
+      <div class="field">
+        <label for="cars">Počet aut</label>
+        <input type="number" id="cars" min="0" value="0" required>
+      </div>
+
+      <button type="submit">Přidat záznam</button>
+      <div id="server-message" class="server-message"></div>
+    </form>
+  </div>
+
+<script type="module">
+  import { initMenu } from "./menu.js";
+
+  // načtení menu
+fetch("menu.html")
+  .then(r => r.text())
+  .then(html => {
+    const menuPlaceholder = document.getElementById("menu-placeholder");
+    if (menuPlaceholder) menuPlaceholder.innerHTML = html;
+    initMenu();
+  });
+
+
+  const form = document.getElementById("add-record-form");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const stationId = document.getElementById("station-id").value.trim();
+    const recordTime = document.getElementById("record-time").value;
+    const people = parseInt(document.getElementById("people").value);
+    const bikes = parseInt(document.getElementById("bikes").value);
+    const cars = parseInt(document.getElementById("cars").value);
+
+    if (!stationId || !recordTime) {
+      document.getElementById("server-message").textContent = "Vyplňte všechny povinné položky!";
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:3000/add_record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ stationId, recordTime, people, bikes, cars })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Chyba serveru");
+
+      document.getElementById("server-message").textContent = "Záznam úspěšně přidán!";
+      form.reset();
+    } catch(err) {
+      document.getElementById("server-message").textContent = err.message;
+      console.error(err);
+    }
+  });
+</script>
+</body>
+</html>

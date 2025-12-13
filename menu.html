@@ -1,0 +1,44 @@
+<div class="top-menu">
+  <button onclick="window.location.href='mainpage.html'">🏠 Domů</button>
+  <button onclick="window.location.href='stats.html'">📊 Statistiky</button>
+  <button onclick="window.location.href='add_station.html'">➕ Přidat stanici</button>
+  <button id="logoutBtn">🚪 Odhlásit se</button>
+</div>
+
+<style>
+.top-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.top-menu button:last-child {
+  margin-left: auto;
+}
+
+.top-menu button {
+  padding: 10px 16px;
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+  transition: 200ms transform, 200ms box-shadow;
+}
+
+.top-menu button:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+</style>

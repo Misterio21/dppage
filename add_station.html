@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Přidat stanici — Moje aplikace</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+
+    <div id="menu-placeholder"></div>
+
+  <main class="container" id="main" role="main">
+    <section class="card" aria-labelledby="add-station-title">
+      <h1 id="add-station-title" class="title">Přidat novou stanici</h1>
+
+      <form id="add-station-form" novalidate>
+        <div class="field">
+          <label for="station-name">Jméno stanice</label>
+          <input
+            id="station-name"
+            name="station-name"
+            type="text"
+            placeholder="Např. Liberec centrum"
+            required
+          />
+          <div class="error" id="name-error" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <label for="station-lat">Zeměpisná šířka</label>
+          <input
+            id="station-lat"
+            name="station-lat"
+            type="text"
+            value="50.7740"
+            required
+          />
+          <div class="error" id="lat-error" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <label for="station-lon">Zeměpisná délka</label>
+          <input
+            id="station-lon"
+            name="station-lon"
+            type="text"
+            value="15.0560"
+            required
+          />
+          <div class="error" id="lon-error" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <label for="station-desc">Popis stanice</label>
+          <input
+            id="station-desc"
+            name="station-desc"
+            type="text"
+            placeholder="Krátký popis stanice"
+          />
+          <div class="error" id="desc-error" aria-live="polite"></div>
+        </div>
+
+        <div class="actions">
+          <button id="submitBtn" type="submit" class="primary">Přidat stanici</button>
+        </div>
+
+        <div id="server-message" class="server-message" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
+
+<script type="module">
+import { requireLogin } from "./auth.js";
+import { initMenu } from "./menu.js";
+
+await requireLogin(); // ← POZOR: await blokuje, dokud není přihlášený
+
+// až teď načti menu
+fetch("menu.html")
+  .then(r => r.text())
+  .then(html => {
+    document.getElementById("menu-placeholder").innerHTML = html;
+    initMenu();
+  });
+
+// teprve potom připoj listener na formulář
+const form = document.getElementById("add-station-form");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("station-name").value.trim();
+  const lat = document.getElementById("station-lat").value.trim();
+  const lon = document.getElementById("station-lon").value.trim();
+  const desc = document.getElementById("station-desc").value.trim();
+
+  if (!name || !lat || !lon) {
+    document.getElementById("server-message").textContent = "Vyplňte všechny povinné položky!";
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:3000/add_station", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, lat, lon, desc })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Chyba serveru");
+
+    document.getElementById("server-message").textContent = "Stanice byla úspěšně přidána! ID: " + data.id;
+    form.reset();
+  } catch(err) {
+    document.getElementById("server-message").textContent = err.message;
+    console.error(err);
+  }
+});
+</script>
+
+
+
+</body>
+</html>

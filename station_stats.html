@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Statistiky stanice — Moje aplikace</title>
+  <link rel="stylesheet" href="index.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .filter-box {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      border-radius: var(--radius);
+      width: 280px;
+      color: var(--text);
+    }
+
+    .filter-box label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+
+    .filter-box select,
+    .filter-box input {
+      width: 100%;
+      padding: 10px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.15);
+      background: #000;
+      color: white;
+    }
+
+    .filter-box button {
+      width: 100%;
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: var(--radius);
+      background: var(--btn);
+      border: none;
+      cursor: pointer;
+      color: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    td {
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="menu-placeholder"></div>
+
+<div style="display: flex; gap: 30px; align-items:flex-start;">
+
+  <!-- FILTR PANEL -->
+  <div class="filter-box">
+      <h2>Filtry</h2>
+
+      <label for="mode">Zobrazit podle:</label>
+      <select id="mode">
+        <option value="minutes">Minuty</option>
+        <option value="days">Dny</option>
+        <option value="months">Měsíce</option>
+      </select>
+
+      <button id="apply-mode">Potvrdit</button>
+
+      <label for="date-filter">Konkrétní datum:</label>
+      <input type="date" id="date-filter">
+
+      <button id="apply-date">Potvrdit</button>
+  </div>
+
+  <!-- TABULKA -->
+  <div style="flex: 1;">
+    <h1 class="title" id="station-name">Statistiky stanice</h1>
+
+    <table id="records-table">
+      <thead>
+        <tr>
+          <th>Čas</th>
+          <th>Počet lidí</th>
+          <th>Počet kol</th>
+          <th>Počet aut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4">Načítám data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- GRAF -->
+<canvas id="statsChart" style="width:100%;max-height:400px;margin-top:25px;"></canvas>
+
+
+<!-- SCRIPT -->
+<script type="module">
+  import { initMenu } from "./menu.js";
+  import { requireLogin } from "./auth.js";
+  await requireLogin();
+
+  // vložení menu
+  fetch("menu.html")
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("menu-placeholder").innerHTML = html;
+      initMenu();
+    });
+
+  const params = new URLSearchParams(window.location.search);
+  const stationId = params.get("id");
+
+  if (!stationId) {
+    alert("Chybí parametr ?id=");
+    throw new Error("Chybí id stanice");
+  }
+
+  let allRecords = [];
+
+  let currentMode = "minutes"; // aktuální zobrazení
+  let currentDate = null;      // aktuální datum, pokud filtr den
+
+  // načtení dat ze serveru
+  async function loadRecords() {
+    try {
+      const res = await fetch(`http://localhost:3000/records/${stationId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Nepodařilo se načíst záznamy.");
+      allRecords = sortByTimestamp(await res.json());
+
+      applyFilters();
+
+      if (allRecords[0]?.stationName) {
+        document.getElementById("station-name").textContent =
+          `Statistiky stanice: ${allRecords[0].stationName}`;
+      }
+
+    } catch (err) {
+      document.querySelector("#records-table tbody").innerHTML =
+        `<tr><td colspan="4">Chyba: ${err.message}</td></tr>`;
+    }
+  }
+
+  loadRecords();
+
+  // AUTOMATICKÁ AKTUALIZACE KAŽDÉ 2 SEKUNDY
+  setInterval(async () => {
+    const res = await fetch(`http://localhost:3000/records/${stationId}`, { credentials: "include" });
+    if (!res.ok) return;
+
+    const newRecords = sortByTimestamp(await res.json());
+    if (JSON.stringify(newRecords) !== JSON.stringify(allRecords)) {
+      allRecords = newRecords;
+      applyFilters(); // zachová aktuální filtr
+    }
+  }, 2000);
+
+  // ===== FILTRY =====
+  document.getElementById("apply-mode").onclick = () => {
+    currentMode = document.getElementById("mode").value;
+    currentDate = null; // ruší filtr den
+    applyFilters();
+  };
+
+  document.getElementById("apply-date").onclick = () => {
+    currentDate = document.getElementById("date-filter").value;
+    applyFilters();
+  };
+
+  function applyFilters() {
+    let filteredData = [...allRecords];
+
+    if (currentDate) {
+      filteredData = filteredData.filter(r => r.timestamp.startsWith(currentDate));
+
+      const result = { timestamp: currentDate, people: 0, bikes: 0, cars: 0 };
+      filteredData.forEach(r => {
+        result.people += r.people;
+        result.bikes += r.bikes;
+        result.cars += r.cars;
+      });
+
+      fillTable([result]);
+      renderChartFromData([result]);
+      return;
+    }
+
+    const grouped = {};
+    filteredData.forEach(r => {
+      const d = new Date(r.timestamp);
+      let key;
+
+      if (currentMode === "minutes") key = d.toISOString().slice(0,16); // YYYY-MM-DDTHH:MM
+      else if (currentMode === "days") key = d.toISOString().slice(0,10); // YYYY-MM-DD
+      else if (currentMode === "months") key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0');
+
+      if (!grouped[key]) grouped[key] = { people:0, bikes:0, cars:0, timestamp:key };
+
+      grouped[key].people += r.people;
+      grouped[key].bikes += r.bikes;
+      grouped[key].cars += r.cars;
+    });
+
+    const finalData = Object.values(grouped).map(g => ({
+      timestamp: g.timestamp,
+      people: g.people,
+      bikes: g.bikes,
+      cars: g.cars
+    }));
+
+    const sortedFinal = sortByTimestamp(finalData);
+    fillTable(sortedFinal);
+
+    if (currentMode === "minutes") renderChartFromData(sortedFinal, 20);
+    else if (currentMode === "days") renderChartFromData(sortedFinal, 20);
+    else if (currentMode === "months") renderChartFromData(sortedFinal, 12);
+  }
+
+  function fillTable(records) {
+    const tbody = document.querySelector("#records-table tbody");
+    tbody.innerHTML = "";
+
+    if (records.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='4'>Žádné záznamy.</td></tr>";
+      return;
+    }
+
+    records.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${formatDate(r.timestamp)}</td>
+        <td>${r.people}</td>
+        <td>${r.bikes}</td>
+        <td>${r.cars}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function sortByTimestamp(data) {
+    return data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  }
+
+  function formatDate(ts) {
+    return new Date(ts).toLocaleString("cs-CZ", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric"
+    });
+  }
+
+  let chart = null;
+  function drawChart(labels, people, bikes, cars) {
+    const ctx = document.getElementById("statsChart").getContext("2d");
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Chodci", data: people, backgroundColor: "rgba(0,255,0,0.6)" },
+          { label: "Kola", data: bikes, backgroundColor: "rgba(0,150,255,0.6)" },
+          { label: "Auta", data: cars, backgroundColor: "rgba(255,0,0,0.6)" }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+        scales: { x: { stacked:true }, y:{ stacked:true } }
+      }
+    });
+  }
+
+  function renderChartFromData(data, limit=null) {
+    if (limit) data = data.slice(-limit);
+    const labels = data.map(d => formatDate(d.timestamp));
+    const people = data.map(d => d.people);
+    const bikes = data.map(d => d.bikes);
+    const cars = data.map(d => d.cars);
+    drawChart(labels, people, bikes, cars);
+  }
+
+</script>
+
+
+</body>
+</html>

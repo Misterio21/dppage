@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Statistiky stanic — Moje aplikace</title>
+  <link rel="stylesheet" href="index.css" />
+  <style>
+    .station-table {
+      width: 100%;
+      max-width: 1400px;
+      margin: 20px auto;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .station-table th, .station-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      word-wrap: break-word;
+    }
+    .station-table th {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .station-table td {
+      color: var(--muted);
+    }
+    .station-table th.id-col,
+    .station-table td.id-col {
+      width: 250px;
+    }
+    .station-table th.name-col,
+    .station-table td.name-col {
+      width: 230px;
+    }
+    .station-table th.lat-col,
+    .station-table td.lat-col,
+    .station-table th.lon-col,
+    .station-table td.lon-col {
+      width: 120px;
+    }
+    .station-table th.email-col,
+    .station-table td.email-col {
+      width: 250px;
+    }
+    .station-table th.action-col,
+    .station-table td.action-col {
+      width: 150px;
+    }
+    .station-table th.delete-col,
+    .station-table td.delete-col {
+      width: 100px;
+    }
+    .station-table button {
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(0,0,0,0.2);
+      cursor: pointer;
+      font-weight: 600;
+      transition: 200ms transform, 200ms box-shadow;
+      margin-right: 4px;
+    }
+    .station-table button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .view-btn {
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+    }
+    .view-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    .delete-btn {
+      background: #ff4d4f;
+      color: white;
+      border: 1px solid #ff4d4f;
+    }
+    .delete-btn:hover {
+      background: #ff7875;
+      border-color: #ff7875;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu-placeholder"></div>
+
+  <main class="container" id="main" role="main">
+    <section class="table" aria-labelledby="station-stats-title">
+      <h1 id="station-stats-title" class="title">Statistiky stanic</h1>
+      <p>Seznam všech stanic:</p>
+
+      <table class="station-table">
+        <thead>
+          <tr>
+            <th class="id-col">ID stanice</th>
+            <th class="name-col">Jméno stanice</th>
+            <th class="email-col">Email zakladatele</th>
+            <th class="lat-col">Zeměpisná šířka</th>
+            <th class="lon-col">Zeměpisná délka</th>
+            <th class="action-col">Akce</th>
+            <th class="delete-col">Smazat</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- data se načítají skriptem -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+<script type="module">
+  import { initMenu } from "./menu.js";
+
+  // načtení menu
+  fetch("menu.html")
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("menu-placeholder").innerHTML = html;
+      initMenu();
+    });
+
+  // načtení stanic z MongoDB
+  // načtení stanic z MongoDB
+async function loadStations() {
+  try {
+    const res = await fetch("http://localhost:3000/stations", { credentials: "include" });
+    if (!res.ok) throw new Error("Nepodařilo se načíst stanice.");
+    const stations = await res.json();
+
+    const tbody = document.querySelector(".station-table tbody");
+    tbody.innerHTML = "";
+
+    stations.forEach(s => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${s._id}</td>
+        <td class="name-col">${s.name}</td>
+        <td class="email-col">${s.email}</td>
+        <td class="lat-col">${s.lat}</td>
+        <td class="lon-col">${s.lon}</td>
+        <td class="action-col">
+          <button class="view-btn" onclick="window.location.href = './station_stats.html?id=${s._id}'">
+  Zobrazit statistiky
+</button>
+
+        </td>
+        <td class="delete-col">
+          <button class="delete-btn" onclick="deleteStation('${s._id}')">Smazat</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch(err) {
+    console.error(err);
+  }
+}
+
+// přiřazení funkce na window, aby byla dostupná v onclick HTML
+window.deleteStation = async function(id) {
+  if (!confirm("Opravdu chcete smazat tuto stanici?")) return;
+  try {
+    const res = await fetch(`http://localhost:3000/delete_station/${id}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (!res.ok) throw new Error("Nepodařilo se smazat stanici.");
+    await loadStations();
+  } catch(err) {
+    alert(err.message);
+    console.error(err);
+  }
+};
+
+loadStations();
+
+</script>
+</body>
+</html>
